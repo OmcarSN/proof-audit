@@ -1,0 +1,23 @@
+# ─── Secrets — NEVER commit (these hold the wallet seed) ───────────────
+.env
+.env.*
+!.env.example
+address.txt
+get-address.ts
+
+# ─── Dependencies & bundled runtime (huge / machine-specific) ──────────
+node_modules/
+node.zip
+node-v*/
+
+# ─── Build output (Vercel rebuilds this) ───────────────────────────────
+dist/
+
+# ─── Local private state / on-disk DB ──────────────────────────────────
+midnight-level-db/
+
+# ─── Local tooling / editor / OS ───────────────────────────────────────
+.claude/
+*.log
+.DS_Store
+Thumbs.db

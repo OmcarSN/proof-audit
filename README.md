@@ -6,7 +6,9 @@ ProofAudit lets a security reviewer prove that code was audited and has zero fin
 
 ## Live Demo
 
-[Deployed URL — added after Vercel deploy]
+**[proof-audit.vercel.app](https://proof-audit.vercel.app/)** — live on Midnight Preview.
+
+Open the **Verify** tab to read an on-chain attestation with no wallet needed. To create one on the **Attest** tab, you'll need the [Lace wallet](https://lace.io) (configured for Midnight Preview) and the local proof server running.
 
 ## Contract Address
 

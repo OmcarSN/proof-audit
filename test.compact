@@ -1,0 +1,7 @@
+pragma language_version 0.23;
+export circuit test(findings: [Uint<8>, Uint<8>], threshold: Uint<8>): [] {
+  let mut count: Uint<8> = 0 as Uint<8>;
+  if (findings[0] >= threshold) { count = (count + 1) as Uint<8>; }
+  if (findings[1] >= threshold) { count = (count + 1) as Uint<8>; }
+  const passed = (count == (0 as Uint<8>));
+}

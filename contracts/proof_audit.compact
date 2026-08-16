@@ -1,0 +1,56 @@
+// proof_audit.compact
+// ProofAudit Level 1
+//
+// PRIVACY MODEL:
+// ----------------------------------------------------------------
+// PUBLIC:
+// - contractHash (the code being audited)
+// - severityThreshold (what standard was applied)
+// - passed (whether it passed the threshold check)
+// - timestamp
+//
+// PRIVATE (Witness):
+// - findings array: what was actually found (severity levels).
+//   The findings array itself NEVER touches the chain. 
+//   Only the computed boolean `passed` is disclosed.
+// ----------------------------------------------------------------
+
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+export ledger attestations: Map<Bytes<32>, Attestation>;
+
+export constructor(): [] {}
+
+export struct Attestation {
+  passed: Boolean;
+  severityThreshold: Uint<8>;
+  timestamp: Uint<64>;
+}
+
+export circuit submitAttestation(
+  contractHash: Bytes<32>,
+  severityThreshold: Uint<8>,
+  findings: [Uint<8>, Uint<8>, Uint<8>] // PRIVATE WITNESS — each entry is a severity 1-4
+): [] {
+  // Check if ALL findings are strictly less than the severityThreshold.
+  // This is logically identical to "zero findings at or above threshold".
+  const passed = (findings[0] < severityThreshold)
+              && (findings[1] < severityThreshold)
+              && (findings[2] < severityThreshold);
+
+  // The one deliberate disclose
+  const disclosedPassed = disclose(passed);
+
+  // Write to ledger
+  attestations.insert(disclose(contractHash), Attestation {
+    passed: disclosedPassed,
+    severityThreshold: disclose(severityThreshold),
+    timestamp: 0 as Uint<64> // Dummy timestamp for now
+  });
+}
+
+export circuit getAttestation(contractHash: Bytes<32>): Attestation {
+  return attestations.lookup(disclose(contractHash));
+}

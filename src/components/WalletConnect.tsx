@@ -39,7 +39,7 @@ export function WalletConnect({ wallet }: Props) {
       )}
 
       {status === 'connecting' && (
-        <div className="wallet-row"><span className="spinner" /> Connecting — check for the Lace popup…</div>
+        <div className="wallet-row"><span className="spinner" /> Connecting to Lace — this can take a moment while your wallet syncs…</div>
       )}
 
       {status === 'connected' && connection && (

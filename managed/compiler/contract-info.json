@@ -1,0 +1,135 @@
+{
+  "compiler-version": "0.31.1",
+  "language-version": "0.23.0",
+  "runtime-version": "0.16.0",
+  "circuits": [
+    {
+      "name": "submitAttestation",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "contractHash",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "severityThreshold",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 255
+          }
+        },
+        {
+          "name": "findings",
+          "type": {
+            "type-name": "Tuple",
+            "types": [
+              {
+                "type-name": "Uint",
+                "maxval": 255
+              },
+              {
+                "type-name": "Uint",
+                "maxval": 255
+              },
+              {
+                "type-name": "Uint",
+                "maxval": 255
+              }
+            ]
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "getAttestation",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "contractHash",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Struct",
+        "name": "Attestation",
+        "elements": [
+          {
+            "name": "passed",
+            "type": {
+              "type-name": "Boolean"
+            }
+          },
+          {
+            "name": "severityThreshold",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "witnesses": [
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "attestations",
+      "index": 0,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Struct",
+        "name": "Attestation",
+        "elements": [
+          {
+            "name": "passed",
+            "type": {
+              "type-name": "Boolean"
+            }
+          },
+          {
+            "name": "severityThreshold",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

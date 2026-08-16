@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../",
+  "sources": ["contracts/proof_audit.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAiBA;;;;;;;;;;MAYA,AAAA,iBAoBC;;;;;cAnBC,cAAuB;cACvB,mBAA0B;cAC1B,UAAqC;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;yCAFrC,cAAuB,+BACvB,mBAA0B,+BAC1B,UAAqC;;;;;;;;;mDAFrC,cAAuB;mDACvB,mBAA0B;mDAC1B,UAAqC;;;OAiBtC;MAED,AAAA,cAEC;;;;;cAF6B,cAAuB;;;;;;;;;;;;;;;;;;yCAAvB,cAAuB;;;;;;;;;gDAAvB,cAAuB;;;OAEpD;;;;;;;;;;GACA;EArCD;;;;;;;;;;;;;;;;;;;;;;;;;;;IAIA;;;;;;;;;;yEAAwD;;;;;;;GAiCvD;EAzBD,AAAA,oBAoBC;;uBAnBC,cAAuB;uBACvB,mBAA0B;uBAC1B,UAAqC;;QAMrB,GAA+B,EAD/B,GAA+B,EAD/B,GAA+B;UAAzC,QAE0C,UAFhC,UAAQ,KAAR,GAA+B,GAAjB,mBAAiB;;4BAC/B,UAAQ,KAAR,GAA+B,GAAjB,mBAAiB;;4BAC/B,UAAQ,KAAR,GAA+B,GAAjB,mBAAiB;UAGzC,iBAAkC,GAAP,QAAM;UAGvC,KAAY,aACF,iBAAe;uCACK,mBAAiB;;IAF/C;;;;;;;;;;2HAA6B,cAAY;;;2HAAzC,KAAY;;;wEAAA;;GAKb;EAED,AAAA,iBAEC,4BAF6B,cAAuB;mCAC5C;;;;;;;;;;;;;;8HAA6B,cAAY;;;wGAA7B;GACpB;;;;;;;;;;;;;;;;IAhCD;;;;;uCAAA;;;;;;;;;;;;;;;;4GAAwD;;;;;;uCAAxD;;;;;;;;;;;;4GAAwD;;;;;;;;;;;;;;uCAAxD;;;;;;;;;;;;;;;4GAAwD;;;;;;;;;;;;;;uCAAxD;;;;;;;;;;;;;;;;;4GAAwD;;;;;;;;;KAAA;;;;;;;;;;"
+}

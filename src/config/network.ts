@@ -1,6 +1,9 @@
 // ProofAudit — Network configuration
-// Uses Preview endpoints (contract already deployed there).
-// Switching to Preprod is a one-line change once that deploy completes.
+// Active network is Preview, where the contract is deployed (33eaac85…).
+// Preprod endpoints are kept for reference, but a Preprod deploy is currently
+// blocked upstream: the Preprod node rejects the DUST fee proof with
+// "Invalid Transaction: Custom error: 170" (a Midnight-side issue — the same
+// stack deploys cleanly to Preview), so the app ships on Preview.
 
 export type NetworkId = 'preprod' | 'preview';
 
@@ -25,7 +28,8 @@ export const PREPROD: NetworkEndpoints = {
   proofServer: 'http://127.0.0.1:6300',
 };
 
-// Active network — change to 'preprod' once Preprod deploy completes
+// Active network. Preview is the deployed network; the Preprod deploy is
+// blocked upstream (see the note at the top of this file), so this stays 'preview'.
 export const ACTIVE_NETWORK: NetworkId = 'preview';
 export const ENDPOINTS: NetworkEndpoints = ACTIVE_NETWORK === 'preprod' ? PREPROD : PREVIEW;
 

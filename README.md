@@ -10,10 +10,14 @@ ProofAudit lets a security reviewer prove that code was audited and has zero fin
 
 ## Contract Address
 
-| Network | Address |
-|---------|---------|
-| Preview | `33eaac85c9dd6b17f0d6ce38271bea626a4359d6a1c8b37ba3cb2c2af238e25a` |
-| Preprod | _deploying — address added on completion_ |
+The contract is deployed and live on **Midnight Preview**, and the app points there.
+
+| Network | Address | Status |
+|---------|---------|--------|
+| Preview | `33eaac85c9dd6b17f0d6ce38271bea626a4359d6a1c8b37ba3cb2c2af238e25a` | ✅ Live |
+| Preprod | — | ⚠️ Blocked upstream (see note) |
+
+> **Note on Preprod.** A Preprod deploy was attempted end-to-end — a fresh wallet synced from genesis, was funded with tNight, and had DUST ready — but the Preprod node rejected the deploy transaction's fee proof with `Invalid Transaction: Custom error: 170` (`InvalidDustSpendProof`). This is a known Midnight Preprod-side issue: the **identical** code and proof server (`ledger-v8` 8.1.0 + `proof-server:8.1.0`) deploy cleanly to Preview. So the app ships on Preview.
 
 ## What This Does
 
@@ -57,7 +61,7 @@ The app has two modes:
 ## Tech Stack
 
 - **Smart Contract:** [Compact](https://docs.midnight.network) (pragma 0.23)
-- **Runtime:** Midnight Network (Preview + Preprod Testnets)
+- **Runtime:** Midnight Network (Preview Testnet)
 - **Frontend:** React 18 + Vite 5 + TypeScript
 - **Wallet:** Lace (Midnight DApp Connector)
 - **ZK Proofs:** Generated locally via Docker proof server

@@ -1,0 +1,41 @@
+name: CI
+
+# Build the web app and run the contract tests on every push and PR to main.
+# The compiled Compact artifacts live in managed/ (committed), so CI does not
+# need the Compact toolchain — it type-checks/builds the frontend and runs the
+# Vitest suite against those artifacts.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch cancels an in-progress run for it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build:web
+
+      - name: Run tests
+        run: npm test

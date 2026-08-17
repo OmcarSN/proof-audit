@@ -2,7 +2,11 @@
 
 **Privacy-Preserving Smart Contract Audit Attestation on Midnight**
 
+[![CI](https://github.com/OmcarSN/proof-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/OmcarSN/proof-audit/actions/workflows/ci.yml)
+
 ProofAudit lets a security reviewer prove that code was audited and has zero findings above a chosen severity threshold — without revealing the underlying vulnerability details. Built on [Midnight](https://midnight.network) using zero-knowledge proofs.
+
+> **Challenge category — Eligibility Gate.** ProofAudit is an *eligibility gate*: it proves a value clears a threshold without revealing the value itself. Here the hidden values are the audit findings, the bar is the severity threshold, and the proof shows every finding sits below the bar — the findings themselves never go on-chain. See [PROPOSAL.md](PROPOSAL.md) for the full write-up.
 
 ## Live Demo
 

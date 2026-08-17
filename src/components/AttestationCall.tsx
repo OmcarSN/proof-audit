@@ -27,17 +27,57 @@ const THRESHOLDS = [
   { v: 4, label: 'Critical — fail only on a Critical finding' },
 ];
 
+/**
+ * The SDK reports a failed submit as `new Error("Unexpected error …: Error",
+ * { cause })`, so the real reason lives on `err.cause` (sometimes nested).
+ * Walk that chain and join every distinct, non-empty message so the true cause
+ * is never hidden behind the wrapper's blank "Error".
+ */
+function deepErrorText(err: unknown): string {
+  const parts: string[] = [];
+  let cur: any = err;
+  for (let i = 0; cur != null && i < 8; i++) {
+    if (typeof cur === 'string') {
+      parts.push(cur);
+    } else if (cur instanceof Error) {
+      parts.push(cur.message || cur.name || '');
+    } else if (typeof cur === 'object') {
+      const m = cur.message ?? cur.error ?? cur.reason ?? cur.detail;
+      if (typeof m === 'string') parts.push(m);
+    }
+    cur = cur?.cause;
+  }
+  return parts.filter((p, i) => p && p !== parts[i - 1]).join(' ← ');
+}
+
 function friendlyError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
+  const raw = deepErrorText(err) || (err instanceof Error ? err.message : String(err));
   const low = raw.toLowerCase();
+  // Our own pre-flight diagnostics are already readable — show them verbatim,
+  // even when the SDK wraps them ("Unexpected error … : Error: WALLET_DEBUG …").
+  // Slice from the marker so the full diagnostic survives (no truncation).
+  const dbg = raw.indexOf('WALLET_DEBUG');
+  if (dbg !== -1) return raw.slice(dbg);
+  // Keep the underlying SDK text visible (trimmed) so an unexpected failure is
+  // never fully hidden behind a friendly guess.
+  const detail = raw ? ` (details: ${raw.slice(0, 180)})` : '';
   if ((err as any)?.code === 4001 || low.includes('reject') || low.includes('denied')) {
     return 'The wallet request was dismissed. Approve the transaction in the Lace popup to submit.';
   }
-  if (low.includes('6300') || low.includes('proof') || low.includes('econnrefused') || low.includes('failed to fetch')) {
-    return "Couldn't reach the proof server on port 6300. Start it with Docker (see the note above), then try again.";
+  if (low.includes('6300') || low.includes('proof server') || low.includes('econnrefused') || low.includes('failed to fetch')) {
+    return "Couldn't reach the proof server on port 6300. Start it with Docker (see the note above), then try again." + detail;
   }
-  if (low.includes('insufficient') || low.includes('dust') || low.includes('funds') || low.includes('balance')) {
-    return 'Your wallet needs Preview test funds (tDUST) to cover the transaction fee.';
+  // Match genuine "not enough fee token" phrasing only — NOT the bare word
+  // "balance", which also appears in balanceAndProveTransaction's own name.
+  if (
+    low.includes('insufficient') ||
+    low.includes('not enough') ||
+    low.includes('dust') ||
+    low.includes('no funds') ||
+    low.includes('spendable') ||
+    low.includes('unspent')
+  ) {
+    return 'Your wallet needs Preview test funds (tDUST) to cover the transaction fee.' + detail;
   }
   return raw;
 }
@@ -154,6 +194,7 @@ export function AttestationCall({ wallet }: Props) {
       // Privacy: drop the entered findings from state once the proof is built.
       setFindings([1, 1, 1]);
     } catch (err) {
+      console.error('[ProofAudit] submit error:', err);
       setError(friendlyError(err));
       setCallState('error');
     }

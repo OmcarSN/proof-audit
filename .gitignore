@@ -21,3 +21,7 @@ midnight-level-db/
 *.log
 .DS_Store
 Thumbs.db
+
+# ─── Local debug throwaways (never commit) ─────────────────────────────
+_e2e-call.mts
+lv811/

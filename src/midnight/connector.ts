@@ -170,7 +170,63 @@ export async function connectLace(): Promise<ConnectionInfo> {
   };
 }
 
-async function extractWalletState(api: any): Promise<WalletState> {
+// Field names differ across Lace / connector versions, and the shielded keys
+// can arrive a beat AFTER the address (Lace fills them in once it finishes
+// syncing). `pickString` returns the first non-empty string among a list of
+// dotted paths, so we tolerate every known naming.
+function pickString(raw: any, paths: string[]): string {
+  for (const path of paths) {
+    const v = path.split('.').reduce((o: any, k) => (o == null ? o : o[k]), raw);
+    if (typeof v === 'string' && v.length > 0) return v;
+  }
+  return '';
+}
+
+const COIN_KEY_PATHS = [
+  'coinPublicKey',
+  'coinPublicKeyLegacy',
+  'publicKeys.coinPublicKey',
+  'publicKeys.coinPublicKeyLegacy',
+  'coinKey',
+];
+const ENC_KEY_PATHS = [
+  'encryptionPublicKey',
+  'encryptionPublicKeyLegacy',
+  'publicKeys.encryptionPublicKey',
+  'publicKeys.encryptionPublicKeyLegacy',
+  'encryptionKey',
+];
+const ADDRESS_PATHS = [
+  'address',
+  'bech32Address',
+  'unshieldedAddress',
+  'addressLegacy',
+  'publicKeys.coinPublicKey',
+];
+
+function normalizeState(raw: any): WalletState {
+  if (typeof raw === 'string') {
+    return { address: raw, coinPublicKey: '', encryptionPublicKey: '', balances: {} };
+  }
+  return {
+    address: pickString(raw, ADDRESS_PATHS),
+    coinPublicKey: pickString(raw, COIN_KEY_PATHS),
+    encryptionPublicKey: pickString(raw, ENC_KEY_PATHS),
+    balances: raw?.balances || raw?.balance || {},
+  };
+}
+
+/**
+ * Read the wallet's current state, returning BOTH our normalized
+ * {@link WalletState} and the raw connector object (handy for diagnostics).
+ *
+ * `state()` may hand back a promise OR an observable. When it's an observable
+ * we wait for an emission that actually carries the shielded coin public key:
+ * Lace emits an early state while it is still syncing, and settling for that
+ * first (keyless) emission is what left the coin/encryption keys empty — which
+ * made the ledger reject the transaction with "invalid string length 0".
+ */
+export async function readWalletState(api: any): Promise<{ state: WalletState; raw: any }> {
   let raw: any = null;
 
   try {
@@ -186,11 +242,27 @@ async function extractWalletState(api: any): Promise<WalletState> {
     if (stateResult && typeof stateResult.then === 'function') {
       raw = await stateResult;
     } else if (stateResult && typeof stateResult.subscribe === 'function') {
-      raw = await new Promise((resolve, reject) => {
-        const sub = stateResult.subscribe({
-          next: (v: any) => { sub.unsubscribe(); resolve(v); },
-          error: (err: any) => reject(err),
+      raw = await new Promise((resolve) => {
+        let latest: any = null;
+        let settled = false;
+        let sub: any;
+        const finish = (v: any) => {
+          if (settled) return;
+          settled = true;
+          try { sub?.unsubscribe?.(); } catch { /* subscription may not exist yet */ }
+          resolve(v);
+        };
+        sub = stateResult.subscribe({
+          next: (v: any) => {
+            latest = v;
+            // Resolve the moment an emission carries the coin key…
+            if (pickString(v, COIN_KEY_PATHS)) finish(v);
+          },
+          error: () => finish(latest),
+          complete: () => finish(latest),
         });
+        // …otherwise settle for the newest emission after a short grace period.
+        setTimeout(() => finish(latest), 2500);
       });
     } else {
       raw = stateResult;
@@ -199,35 +271,11 @@ async function extractWalletState(api: any): Promise<WalletState> {
     raw = api;
   }
 
-  const address =
-    typeof raw === 'string'
-      ? raw
-      : raw?.address ||
-        raw?.bech32Address ||
-        raw?.unshieldedAddress ||
-        raw?.publicKeys?.coinPublicKey ||
-        '';
+  return { raw, state: normalizeState(raw) };
+}
 
-  const coinPublicKey =
-    raw?.coinPublicKey ||
-    raw?.publicKeys?.coinPublicKey ||
-    raw?.coinKey ||
-    '';
-
-  const encryptionPublicKey =
-    raw?.encryptionPublicKey ||
-    raw?.publicKeys?.encryptionPublicKey ||
-    raw?.encryptionKey ||
-    '';
-
-  const balances = raw?.balances || raw?.balance || {};
-
-  return {
-    address,
-    coinPublicKey,
-    encryptionPublicKey,
-    balances,
-  };
+async function extractWalletState(api: any): Promise<WalletState> {
+  return (await readWalletState(api)).state;
 }
 
 export async function isAlreadyConnected(): Promise<boolean> {

@@ -9,18 +9,38 @@ export default defineConfig({
     target: 'es2022',
   },
   resolve: {
-    alias: {
-      '@midnight-ntwrk/compact-runtime': fileURLToPath(
-        new URL('./node_modules/@midnight-ntwrk/compact-runtime', import.meta.url),
-      ),
+    // Force a SINGLE copy of the onchain runtime. Two versions are installed —
+    // 3.1.0 hoisted at the top level (what compact-runtime + the managed
+    // contract resolve to) and 3.0.0 nested under midnight-js-protocol — and
+    // each ships its own `_StateValue` class. On a contract CALL, state parsed
+    // by one copy is handed to the other, throwing "expected instance of
+    // _StateValue". Pinning every import to the top-level 3.1.0 (satisfies
+    // compact-runtime's ^3.0.0; the version the deployed circuit was built
+    // with) collapses them to one class. dedupe is a backstop; the alias is
+    // what actually reaches esbuild's dep pre-bundling.
+    dedupe: ['@midnight-ntwrk/onchain-runtime-v3', '@midnight-ntwrk/compact-runtime'],
+    alias: [
+      {
+        find: '@midnight-ntwrk/compact-runtime',
+        replacement: fileURLToPath(
+          new URL('./node_modules/@midnight-ntwrk/compact-runtime', import.meta.url),
+        ),
+      },
+      {
+        find: /^@midnight-ntwrk\/onchain-runtime-v3$/,
+        replacement: fileURLToPath(
+          new URL('./node_modules/@midnight-ntwrk/onchain-runtime-v3', import.meta.url),
+        ),
+      },
       // The indexer provider reads `ws.WebSocket` from isomorphic-ws, whose
       // browser build only default-exports it — so the production bundle would
       // leave it undefined and the post-submit confirmation subscription would
       // crash. Point it at a shim that re-exports the browser's global.
-      'isomorphic-ws': fileURLToPath(
-        new URL('./src/shims/isomorphic-ws.ts', import.meta.url),
-      ),
-    },
+      {
+        find: 'isomorphic-ws',
+        replacement: fileURLToPath(new URL('./src/shims/isomorphic-ws.ts', import.meta.url)),
+      },
+    ],
   },
   define: {
     global: 'globalThis',
@@ -30,21 +50,36 @@ export default defineConfig({
     fs: { allow: ['..'] },
   },
   optimizeDeps: {
-    // These carry WASM / top-level-await and must not be pre-bundled by esbuild.
+    // compact-runtime carries the WASM engine (and is aliased above), so it must
+    // stay un-prebundled — esbuild can't inline its WebAssembly. It's kept
+    // external; packages that depend on it (e.g. compact-js) still pre-bundle
+    // safely around it.
     exclude: [
       '@midnight-ntwrk/compact-runtime',
-      '@midnight-ntwrk/midnight-js-contracts',
     ],
-    // These are loaded via dynamic import() in src/midnight/contract.ts, so
-    // Vite's dep scanner misses them in dev. Force pre-bundling so their CJS
-    // transitive deps (e.g. object-inspect) get proper ESM interop — otherwise
-    // the Verify read path throws "does not provide an export named 'default'"
-    // in `npm run dev` (the production build is unaffected). object-inspect is
-    // listed explicitly because its importer (compact-runtime) is excluded
-    // above, so only a direct include gives it an interop default export.
+    // Everything reached via the dynamic import()s in src/midnight/contract.ts.
+    // Vite's dep scanner can't see dynamic imports, so unless they're listed
+    // here their CommonJS transitive deps get served raw and the browser throws
+    // "exports is not defined" / "does not provide an export named 'default'"
+    // in `npm run dev` (the production Rollup build is unaffected). Pre-bundling
+    // converts the whole graph to ESM with proper interop.
     include: [
       '@midnight-ntwrk/midnight-js-indexer-public-data-provider',
       '@midnight-ntwrk/midnight-js-http-client-proof-provider',
+      // midnight-js-contracts was previously *excluded*, which left its own
+      // CommonJS deps (midnight-js-protocol, midnight-js-utils) to be served raw
+      // — the actual source of "exports is not defined" on submit. Pre-bundling
+      // it pulls those deps into the ESM-converted graph. It does NOT depend on
+      // compact-runtime, so no WASM is dragged in (compact-js proves the pattern
+      // works: it depends on compact-runtime yet pre-bundles fine).
+      '@midnight-ntwrk/midnight-js-contracts',
+      '@midnight-ntwrk/midnight-js-protocol',
+      '@midnight-ntwrk/midnight-js-utils',
+      // Decodes a shielded address → coin/encryption public keys for the newer
+      // DUST-model Lace (see deriveShieldedKeys in src/midnight/contract.ts).
+      // Dynamically imported, so Vite's scanner won't pre-bundle it unless it's
+      // listed here — otherwise its CommonJS deps get served raw in dev.
+      '@midnight-ntwrk/wallet-sdk-address-format',
       'object-inspect',
     ],
   },

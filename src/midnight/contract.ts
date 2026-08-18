@@ -448,7 +448,7 @@ export async function callSubmitAttestation(
     // (reached === 'broadcast'), whether or not the wallet handed back a tx id —
     // the newer DUST-model Lace resolves submitTransaction with no id. Anything
     // thrown AFTER that is the SDK's post-broadcast confirmation watch: an indexer
-    // query that the current Preview indexer rejects with
+    // query that the v3 indexer (Preview and Preprod alike) rejects with
     // "IndexerQueryError / CombinedGraphQLErrors: Invalid value for argument
     // 'offset' … Oneof input objects requires have exactly one field". That watch
     // failing does NOT change whether the attestation lands, so we treat a

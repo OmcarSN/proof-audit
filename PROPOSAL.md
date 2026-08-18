@@ -3,7 +3,7 @@
 **Challenge idea:** Age / Eligibility Gate — *prove a threshold without revealing the underlying value.*
 
 **Live demo:** https://proof-audit.vercel.app
-**Contract (Midnight Preview):** `33eaac85c9dd6b17f0d6ce38271bea626a4359d6a1c8b37ba3cb2c2af238e25a`
+**Contract (Midnight Preprod):** `9cf5ec73a7330def5f7730569d0b898572d5fdde78863ddb14f0f451493f117d`
 
 ---
 
@@ -90,7 +90,7 @@ Nothing on this roadmap needs a capability Midnight doesn't already have — it'
 
 ## Status against the Level 3 bar
 
-- ✅ **Functional dApp** meaningfully using Midnight's privacy model (private witness + public verdict), deployed and live on Preview.
+- ✅ **Functional dApp** meaningfully using Midnight's privacy model (private witness + public verdict), deployed and live on **Preprod** (and Preview).
 - ✅ **Tests:** 3 passing (`npm test`) — passing case, failing case, and a privacy check that findings never appear in public output.
 - ✅ **CI/CD:** GitHub Actions builds the web app and runs the tests on every push and PR to `main`.
 - ✅ **Idea from the list:** Eligibility Gate (this document).
@@ -101,4 +101,4 @@ Nothing on this roadmap needs a capability Midnight doesn't already have — it'
 
 - The Level-1 contract attests to **exactly 3 findings**; a real audit has any number. Supporting a variable count needs a contract change and redeploy — flagged as a follow-up.
 - Threshold **1** always fails, since no finding can sit below severity 1. The UI notes this.
-- Shipped on **Preview**. A Preprod deploy was attempted but blocked upstream by a Midnight-side dust-proof error (`170`); the identical stack deploys cleanly to Preview.
+- Deployed and live on **both Midnight testnets** (Preprod `9cf5ec73…`, Preview `33eaac85…`); the app runs on Preprod. An early Preprod deploy hit a transient Midnight-side dust-proof error (`170`); a later attempt with a full dust sync deployed cleanly and is verified on-chain via the Preprod indexer.

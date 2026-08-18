@@ -3,7 +3,7 @@ import type { UseMidnight } from '../hooks/useMidnight';
 import { callSubmitAttestation, type AttestationResult } from '../midnight/contract';
 import { sha256Text, sha256File, hexToBytes32, bytesToHex } from '../lib/hash';
 import { isProofServerUp, PROOF_SERVER_DOCKER_CMD } from '../lib/proofServer';
-import { CONTRACT_ADDRESS, explorerTxUrl } from '../config/network';
+import { CONTRACT_ADDRESS, NETWORK_LABEL, explorerTxUrl } from '../config/network';
 
 interface Props {
   wallet: UseMidnight;
@@ -77,7 +77,7 @@ function friendlyError(err: unknown): string {
     low.includes('spendable') ||
     low.includes('unspent')
   ) {
-    return 'Your wallet needs Preview test funds (tDUST) to cover the transaction fee.' + detail;
+    return `Your wallet needs ${NETWORK_LABEL} test funds (tDUST) to cover the transaction fee.` + detail;
   }
   return raw;
 }
@@ -248,7 +248,7 @@ export function AttestationCall({ wallet }: Props) {
             </>
           ) : (
             <p className="result-note">
-              📡 Broadcast to Preview. Open the <strong>Verify</strong> tab in ~30 seconds and enter
+              📡 Broadcast to {NETWORK_LABEL}. Open the <strong>Verify</strong> tab in ~30 seconds and enter
               the same audited item to confirm the verdict on-chain.
             </p>
           )}
@@ -391,7 +391,7 @@ export function AttestationCall({ wallet }: Props) {
       )}
 
       <p className="field-help" style={{ marginTop: '1.25rem' }}>
-        Contract <code style={{ fontFamily: 'var(--font-mono)' }}>{CONTRACT_ADDRESS.slice(0, 10)}…</code> on Preview.
+        Contract <code style={{ fontFamily: 'var(--font-mono)' }}>{CONTRACT_ADDRESS.slice(0, 10)}…</code> on {NETWORK_LABEL}.
       </p>
     </section>
   );

@@ -15,7 +15,7 @@ Built on [Midnight](https://midnight.network) using zero-knowledge proofs.
 | 🌐 **Live app** | **[proof-audit.vercel.app](https://proof-audit.vercel.app/)** |
 | 📺 **1-minute demo** | **[Watch on YouTube ↗](https://youtu.be/Fl0GRoSggFs)** |
 | 📄 **Full idea write-up** | [PROPOSAL.md](PROPOSAL.md) |
-| ⛓️ **Contract (Midnight Preview)** | `33eaac85c9dd6b17f0d6ce38271bea626a4359d6a1c8b37ba3cb2c2af238e25a` |
+| ⛓️ **Contract (Midnight Preprod)** | `9cf5ec73a7330def5f7730569d0b898572d5fdde78863ddb14f0f451493f117d` |
 
 ---
 
@@ -88,7 +88,7 @@ That gap — between what's *proven* and what's *revealed* — is the whole prod
 **Just want to verify a verdict?** Open **[the live app](https://proof-audit.vercel.app/)** → **Verify** tab. No wallet or setup needed — it reads directly from the chain.
 
 **Want to create an attestation?** You'll need:
-- The [Lace wallet](https://lace.io) extension, set to **Midnight Preview**, funded with test **tNIGHT** from the [Preview faucet](https://midnight-tmnight-preview.nethermind.dev/).
+- The [Lace wallet](https://lace.io) extension, set to **Midnight Preprod**, funded with test **tNIGHT** from the [Preprod faucet](https://faucet.preprod.midnight.network/).
 - The local **proof server** running (see [Setup](#-local-setup) below).
 
 > 💡 **Fees are paid in tDUST, not tNIGHT.** Holding tNIGHT alone isn't enough — in Lace, click **"Generate tDUST"** (Review → Confirm) once to register your NIGHT and start the DUST balance filling. This covers the transaction fee.
@@ -129,7 +129,7 @@ The `findings` array is a **private witness**: the proof mathematically guarante
 | Layer | Technology |
 |---|---|
 | Smart contract | [Compact](https://docs.midnight.network) (pragma 0.23) |
-| Network | Midnight **Preview** testnet |
+| Network | Midnight **Preprod** testnet |
 | Frontend | React 18 + Vite 5 + TypeScript |
 | Wallet | Lace (Midnight DApp Connector) |
 | ZK proofs | Generated locally via the Docker proof server (`proof-server:8.1.0`) |
@@ -206,14 +206,14 @@ proof-audit/
 
 ## ⛓️ Deployment
 
-The contract is deployed and live on **Midnight Preview**, and the app points there.
+The contract is deployed and live on **both Midnight testnets**. The app points at **Preprod**.
 
 | Network | Address | Status |
 |---------|---------|--------|
+| **Preprod** (active) | `9cf5ec73a7330def5f7730569d0b898572d5fdde78863ddb14f0f451493f117d` | ✅ Live |
 | Preview | `33eaac85c9dd6b17f0d6ce38271bea626a4359d6a1c8b37ba3cb2c2af238e25a` | ✅ Live |
-| Preprod | — | ⚠️ Blocked upstream (see note) |
 
-> **Note on Preprod.** A Preprod deploy was attempted end-to-end — a fresh wallet synced from genesis, funded, with DUST ready — but the Preprod node rejected the deploy transaction's fee proof with `Invalid Transaction: Custom error: 170` (`InvalidDustSpendProof`). This is a known Midnight Preprod-side issue: the **identical** stack (`ledger-v8` 8.1.0 + `proof-server:8.1.0`) deploys cleanly to Preview. So the app ships on Preview.
+> **Note on the Preprod deploy.** An early attempt was rejected by the Preprod node with `Invalid Transaction: Custom error: 170` (`InvalidDustSpendProof`) — a transient Midnight-side dust-proof issue. A later attempt, run after a full genesis dust sync, deployed cleanly with the **same** stack (`ledger-v8` 8.1.0 + `proof-server:8.1.0`). The deployment is verified on-chain: querying the Preprod indexer for the address returns a `ContractDeploy` action carrying the contract's `submitAttestation` / `getAttestation` circuits.
 
 ---
 
@@ -221,7 +221,6 @@ The contract is deployed and live on **Midnight Preview**, and the app points th
 
 - **Exactly 3 findings.** This contract attests to a fixed set of three finding severities. A real audit has any number; supporting that needs a contract change + redeploy — flagged as a follow-up.
 - **Threshold "1" always fails**, since no finding can be below severity 1. The UI notes this and omits it as an option.
-- **Ships on Preview** (not Preprod) due to the upstream dust-proof issue described above.
 
 ---
 

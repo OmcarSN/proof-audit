@@ -3,6 +3,8 @@
 // Adapted from vault-circle reference
 // ═══════════════════════════════════════════════════════════════════════
 
+import { ACTIVE_NETWORK, ENDPOINTS } from '../config/network';
+
 export interface ServiceUriConfig {
   readonly indexerUri: string;
   readonly indexerWsUri: string;
@@ -147,14 +149,14 @@ async function doConnectLace(): Promise<ConnectionInfo> {
   const chosenKey = inspectInjection().chosenKey ?? 'mnLace';
 
   let api: DAppConnectorWalletAPI;
-  const networkId = 'preview';
+  const networkId = ACTIVE_NETWORK;
 
   // Connect EXACTLY ONCE. The connector keeps a single live channel open, so we
   // must NOT retry on a second network: a second connect()/enable() call opens a
   // new channel and shuts this one down mid-handshake, which surfaces as
   // "channel '…' was shutdown: object can no longer be used" (and shows the user
-  // a confusing second password prompt). The contract is deployed on Preview, so
-  // Preview is the only network we ever ask for.
+  // a confusing second password prompt). We ask only for the active network
+  // (see config/network.ts) — the network the contract is deployed on.
   try {
     if (typeof (connector as any).connect === 'function') {
       api = await (connector as any).connect(networkId);
@@ -174,10 +176,10 @@ async function doConnectLace(): Promise<ConnectionInfo> {
   const fetchUris = typeof connector.serviceUriConfig === 'function'
     ? connector.serviceUriConfig()
     : Promise.resolve({
-        indexerUri: 'https://indexer.preview.midnight.network/api/v3/graphql',
-        indexerWsUri: 'wss://indexer.preview.midnight.network/api/v3/graphql/ws',
-        nodeUri: 'wss://rpc.preview.midnight.network',
-        proverServerUri: 'http://127.0.0.1:6300',
+        indexerUri: ENDPOINTS.indexer,
+        indexerWsUri: ENDPOINTS.indexerWS,
+        nodeUri: ENDPOINTS.node.replace(/^http/, 'ws'),
+        proverServerUri: ENDPOINTS.proofServer,
       });
 
   const [state, uris] = await Promise.all([

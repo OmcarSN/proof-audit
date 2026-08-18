@@ -47,6 +47,47 @@ So instead of "prove your age is over the bar without showing your age," ProofAu
 
 That gap between what is proven and what is revealed *is* the product.
 
+## Who it's for
+
+Smart-contract auditors and audit firms, plus the people who depend on their verdicts — DeFi protocols, token teams, and the communities deciding whether a contract is safe to trust.
+
+## Why Midnight specifically
+
+ProofAudit needs two things at the same time that only a privacy-enabled chain can provide:
+
+1. **A public, tamper-proof verdict** anyone can check — so it has to live on-chain.
+2. **The evidence behind that verdict kept secret** — findings must not be published before they are fixed.
+
+On a normal (transparent) chain you cannot have both: everything you put on-chain is public, so proving "all findings are below the bar" would force you to reveal the findings themselves. Midnight's zero-knowledge model is exactly what lets the findings stay a **private witness** while only the pass/fail verdict is disclosed. The product *is* that gap — it isn't achievable on Ethereum or other transparent L1s without bolting on a separate ZK stack.
+
+## Data model
+
+**On-chain (public)** — stored in the ledger as `attestations: Map<Bytes<32>, Attestation>`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `contractHash` | `Bytes<32>` | Fingerprint of the audited code (the map key) |
+| `severityThreshold` | `Uint<8>` | The bar that was applied |
+| `passed` | `Boolean` | The verdict |
+| `timestamp` | `Uint<64>` | When it was attested |
+
+**Private witness (never on-chain):**
+
+| Field | Type | Meaning |
+|---|---|---|
+| `findings` | `[Uint<8>, Uint<8>, Uint<8>]` | Severity of each issue found — used only inside the circuit to compute `passed`, never disclosed |
+
+The circuit's `disclose(...)` calls are the only values that ever leave the prover; everything else stays secret by construction.
+
+## Path to Mainnet (feasibility by Level 6)
+
+The core already works and is deployed on testnet, so the road to Mainnet is about hardening, not inventing:
+
+- **Levels 4-5:** lift the fixed "exactly 3 findings" limit to a variable count (a Merkle-committed findings list), add an auditor identity/credential so verdicts are attributable, and build a public registry UI to browse attestations.
+- **Level 6:** security review of the circuit, proof-cost tuning, and deploy the audited contract to Mainnet.
+
+Nothing on this roadmap needs a capability Midnight doesn't already have — it's the same primitives (private witness + selective disclosure + on-chain map) at larger scale — which makes a Mainnet deployment by Level 6 realistic.
+
 ## Status against the Level 3 bar
 
 - ✅ **Functional dApp** meaningfully using Midnight's privacy model (private witness + public verdict), deployed and live on Preview.

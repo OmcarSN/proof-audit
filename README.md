@@ -14,6 +14,10 @@ ProofAudit lets a security reviewer prove that code was audited and has zero fin
 
 Open the **Verify** tab to read an on-chain attestation with no wallet needed. To create one on the **Attest** tab, you'll need the [Lace wallet](https://lace.io) (configured for Midnight Preview) and the local proof server running.
 
+## Demo Video
+
+📺 **[Watch the 1-minute demo ↗](https://youtu.be/Fl0GRoSggFs)** — connect Lace, create a sealed attestation (Attest → **PASSED**), then read the verdict back from chain on the **Verify** tab, with the findings never revealed.
+
 ## Contract Address
 
 The contract is deployed and live on **Midnight Preview**, and the app points there.

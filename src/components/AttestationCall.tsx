@@ -232,16 +232,25 @@ export function AttestationCall({ wallet }: Props) {
             {result.passed ? 'Passed' : 'Failed'}
           </div>
           <p className="result-note">🔒 Proven without revealing your findings.</p>
-          <div className="tx-row">
-            <code title={result.txId}>{result.txId}</code>
-            <button type="button" className="btn-icon" onClick={() => copyTx(result.txId)}>
-              {copied ? 'Copied' : 'Copy tx'}
-            </button>
-          </div>
-          {explorerTxUrl(result.txId) && (
-            <a className="linkbtn" href={explorerTxUrl(result.txId)!} target="_blank" rel="noopener">
-              View on explorer ↗
-            </a>
+          {result.txId && result.txId !== 'submitted' ? (
+            <>
+              <div className="tx-row">
+                <code title={result.txId}>{result.txId}</code>
+                <button type="button" className="btn-icon" onClick={() => copyTx(result.txId)}>
+                  {copied ? 'Copied' : 'Copy tx'}
+                </button>
+              </div>
+              {explorerTxUrl(result.txId) && (
+                <a className="linkbtn" href={explorerTxUrl(result.txId)!} target="_blank" rel="noopener">
+                  View on explorer ↗
+                </a>
+              )}
+            </>
+          ) : (
+            <p className="result-note">
+              📡 Broadcast to Preview. Open the <strong>Verify</strong> tab in ~30 seconds and enter
+              the same audited item to confirm the verdict on-chain.
+            </p>
           )}
           <div className="result-actions">
             <button

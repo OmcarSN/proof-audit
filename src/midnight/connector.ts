@@ -108,7 +108,37 @@ function chosenConnector(): DAppConnectorAPI | null {
   return chosenKey ? (window.midnight?.[chosenKey] ?? null) : null;
 }
 
+let cachedConnection: ConnectionInfo | null = null;
+let connectInFlight: Promise<ConnectionInfo> | null = null;
+
+/**
+ * Connect to Lace. The dApp connector exposes only ONE live API channel: a
+ * second enable()/connect() call shuts the first one down, after which the
+ * stale handle throws "channel '…' was shutdown: object can no longer be used."
+ *
+ * So we connect AT MOST ONCE per session and hand the same ConnectionInfo to
+ * every caller: the cache serves repeat calls, and `connectInFlight` collapses
+ * calls that overlap before the first resolves. Call clearConnection() to force
+ * a fresh reconnect (e.g. on disconnect).
+ */
 export async function connectLace(): Promise<ConnectionInfo> {
+  if (cachedConnection) return cachedConnection;
+  if (connectInFlight) return connectInFlight;
+  connectInFlight = doConnectLace();
+  try {
+    cachedConnection = await connectInFlight;
+    return cachedConnection;
+  } finally {
+    connectInFlight = null;
+  }
+}
+
+/** Drop the cached wallet connection so the next connectLace() reconnects. */
+export function clearConnection(): void {
+  cachedConnection = null;
+}
+
+async function doConnectLace(): Promise<ConnectionInfo> {
   let connector = chosenConnector();
   if (!connector) {
     connector = (await waitForConnector(3000)) ?? getConnector();
@@ -119,6 +149,12 @@ export async function connectLace(): Promise<ConnectionInfo> {
   let api: DAppConnectorWalletAPI;
   const networkId = 'preview';
 
+  // Connect EXACTLY ONCE. The connector keeps a single live channel open, so we
+  // must NOT retry on a second network: a second connect()/enable() call opens a
+  // new channel and shuts this one down mid-handshake, which surfaces as
+  // "channel '…' was shutdown: object can no longer be used" (and shows the user
+  // a confusing second password prompt). The contract is deployed on Preview, so
+  // Preview is the only network we ever ask for.
   try {
     if (typeof (connector as any).connect === 'function') {
       api = await (connector as any).connect(networkId);
@@ -128,22 +164,11 @@ export async function connectLace(): Promise<ConnectionInfo> {
       throw new Error('Wallet connector does not expose an enable() or connect() method.');
     }
   } catch (err: any) {
-    // If preview fails, retry with preprod in case Lace is on preprod
-    try {
-      if (typeof (connector as any).connect === 'function') {
-        api = await (connector as any).connect('preprod');
-      } else if (typeof connector.enable === 'function') {
-        api = await (connector as any).enable('preprod');
-      } else {
-        throw err;
-      }
-    } catch {
-      const msg = String(err?.message ?? err);
-      if (msg.toLowerCase().includes('reject') || err?.code === 4001) {
-        throw new Error('Connection rejected. Please approve the connection request in the Lace wallet popup.');
-      }
-      throw new Error(`Wallet connection failed: ${msg}`);
+    const msg = String(err?.message ?? err);
+    if (msg.toLowerCase().includes('reject') || err?.code === 4001) {
+      throw new Error('Connection rejected. Please approve the connection request in the Lace wallet popup.');
     }
+    throw new Error(`Wallet connection failed: ${msg}`);
   }
 
   const fetchUris = typeof connector.serviceUriConfig === 'function'

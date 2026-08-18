@@ -18,7 +18,17 @@ export default defineConfig({
     // compact-runtime's ^3.0.0; the version the deployed circuit was built
     // with) collapses them to one class. dedupe is a backstop; the alias is
     // what actually reaches esbuild's dep pre-bundling.
-    dedupe: ['@midnight-ntwrk/onchain-runtime-v3', '@midnight-ntwrk/compact-runtime'],
+    dedupe: [
+      '@midnight-ntwrk/onchain-runtime-v3',
+      '@midnight-ntwrk/compact-runtime',
+      // compact-js + platform-js use module-local `Symbol()` tokens to stash a
+      // contract's context on the compiled-contract object. If two copies load
+      // (one optimized, one raw) their symbols differ, the context reads back
+      // undefined, and findDeployedContract throws "Cannot read properties of
+      // undefined (reading 'ctor')". Force a single instance of each.
+      '@midnight-ntwrk/compact-js',
+      '@midnight-ntwrk/platform-js',
+    ],
     alias: [
       {
         find: '@midnight-ntwrk/compact-runtime',
@@ -66,6 +76,14 @@ export default defineConfig({
     include: [
       '@midnight-ntwrk/midnight-js-indexer-public-data-provider',
       '@midnight-ntwrk/midnight-js-http-client-proof-provider',
+      // compact-js is dynamically imported in contract.ts. Because dynamic
+      // imports are invisible to Vite's dep scanner, without this it can be
+      // served RAW as a second module instance — and its module-local Symbol()
+      // context token then mismatches the optimized copy that
+      // midnight-js-contracts uses, throwing "reading 'ctor'" on submit. Listing
+      // it here (with platform-js, its peer) guarantees ONE pre-bundled copy.
+      '@midnight-ntwrk/compact-js',
+      '@midnight-ntwrk/platform-js',
       // midnight-js-contracts was previously *excluded*, which left its own
       // CommonJS deps (midnight-js-protocol, midnight-js-utils) to be served raw
       // — the actual source of "exports is not defined" on submit. Pre-bundling

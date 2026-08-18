@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   connectLace,
+  clearConnection,
   isAlreadyConnected,
   waitForConnector,
   inspectInjection,
@@ -83,6 +84,7 @@ export function useMidnight(): UseMidnight {
   }, []);
 
   const disconnect = useCallback(() => {
+    clearConnection();
     setConnection(null);
     setError(null);
     setHint(DISCONNECT_HINT);

@@ -46,7 +46,9 @@ export const EXPLORER_BASE: string =
   (import.meta as any).env?.VITE_EXPLORER_BASE?.trim() || '';
 
 export function explorerTxUrl(txId: string): string | null {
-  if (!EXPLORER_BASE || !txId) return null;
+  // 'submitted' is our placeholder for a broadcast tx whose id the wallet did
+  // not return — it isn't a real hash, so never build a (broken) link for it.
+  if (!EXPLORER_BASE || !txId || txId === 'submitted') return null;
   return `${EXPLORER_BASE.replace(/\/$/, '')}/tx/${txId}`;
 }
 

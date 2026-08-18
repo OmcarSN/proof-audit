@@ -78,17 +78,59 @@ function protoNames(o: any): string {
 }
 
 /**
+ * Walk an Effect-TS `Cause` tree to its innermost real error and describe it.
+ * A FiberFailure keeps the actual failure in a Symbol-keyed `Cause` object while
+ * leaving its own `.message` empty — so without unwrapping this, the banner just
+ * reads "(empty message)" and hides the real reason (e.g. insufficient
+ * funds/dust to pay the fee, or a rejected balance).
+ */
+function unwrapEffectCause(cause: any, seen: Set<any>, depth: number): string {
+  if (cause == null || typeof cause !== 'object' || depth > 6 || seen.has(cause)) return '';
+  seen.add(cause);
+  const tag = cause._tag;
+  if (tag === 'Fail' && cause.error != null) return describeErr(cause.error, depth + 1);
+  if (tag === 'Die' && cause.defect != null) return describeErr(cause.defect, depth + 1);
+  if (tag === 'Interrupt') return 'fiber interrupted';
+  // Sequential/Parallel branches, or any nested wrapper field.
+  for (const k of ['error', 'defect', 'cause', 'left', 'right', 'value', 'current']) {
+    const s = unwrapEffectCause(cause[k], seen, depth + 1);
+    if (s) return s;
+  }
+  return '';
+}
+
+/**
  * Human-readable one-liner for ANY thrown value — including the opaque,
  * empty-message `Error`s the wallet/SDK sometimes throw. Pulls the error's
  * name, message, the first stack frame (which file/function actually threw),
  * and any own properties (wallet errors often stash the real reason on a custom
- * field), so the banner shows something actionable instead of a blank "Error".
+ * field). Also unwraps Effect-TS FiberFailure causes (Symbol-keyed) and the
+ * `.cause` chain, so the banner shows something actionable instead of "Error".
  */
-function describeErr(e: any): string {
+function describeErr(e: any, depth = 0): string {
   if (e == null) return String(e);
   if (typeof e === 'string') return e;
+  if (depth > 6) return e.name || 'Error';
   const name = e.name || e.constructor?.name || 'Error';
-  const msg = e.message ? String(e.message) : '';
+  let msg = e.message ? String(e.message) : '';
+
+  // Effect-TS FiberFailure reports an empty top-level message and hides the real
+  // failure in a Symbol-keyed Cause. Recover it so the reason is actually shown.
+  if (!msg) {
+    try {
+      const seen = new Set<any>();
+      for (const sym of Object.getOwnPropertySymbols(e)) {
+        const found = unwrapEffectCause((e as any)[sym], seen, 0);
+        if (found) {
+          msg = found;
+          break;
+        }
+      }
+    } catch {
+      /* symbol access can throw on exotic objects; ignore */
+    }
+  }
+
   let frame = '';
   if (typeof e.stack === 'string') {
     const lines = e.stack.split('\n').map((l: string) => l.trim());
@@ -107,7 +149,16 @@ function describeErr(e: any): string {
   } catch {
     /* some fields aren't serializable; skip them */
   }
-  return `${name}: ${msg || '(empty message)'}${frame ? ` @ ${frame}` : ''}${props}`;
+  // Follow the `.cause` chain too: SDK wrappers (and our own balanceTx wrapper,
+  // whose message was frozen before we could unwrap it) nest the live
+  // FiberFailure there, so recursing reaches the real reason.
+  let causeStr = '';
+  const cause = (e as any).cause;
+  if (cause != null && cause !== e && depth < 4) {
+    const c = describeErr(cause, depth + 1);
+    if (c && !msg.includes(c)) causeStr = ` ← ${c}`;
+  }
+  return `${name}: ${msg || '(empty message)'}${frame ? ` @ ${frame}` : ''}${props}${causeStr}`;
 }
 
 /**
@@ -309,6 +360,9 @@ export async function callSubmitAttestation(
       try {
         balanced = await laceApi[method](bytes);
       } catch (e: any) {
+        // Log the raw Effect error object so its full cause tree is expandable
+        // in DevTools even if the banner text is truncated.
+        console.error('[ProofAudit] balanceUnsealedTransaction raw error:', e);
         throw new Error(`WALLET_DEBUG balanceUnsealedTransaction failed: ${describeErr(e)}`, {
           cause: e,
         });
@@ -390,14 +444,20 @@ export async function callSubmitAttestation(
     // A CallTxFailedError means the node INCLUDED the tx but the chain rejected
     // it (verdict/assertion) — that is a real failure, never mask it.
     const rejectedOnChain = err?.name === 'CallTxFailedError' || err?.finalizedTxData != null;
-    // Otherwise, if the wallet already returned a tx id, the transaction WAS
-    // broadcast to the node; anything thrown after that is the SDK's post-submit
-    // confirmation watch (an indexer websocket subscription) failing, which does
-    // not change whether the attestation lands. Treat it as submitted — the
-    // Verify tab reads the authoritative on-chain verdict once it is indexed.
-    if (submittedTxId && !rejectedOnChain) {
-      console.warn('[ProofAudit] confirmation watch failed AFTER broadcast — treating as submitted:', err);
-      return { passed, txId: submittedTxId, contractHashHex: bytesToHex(contractHash) };
+    // Otherwise, once our submitTx completed the tx WAS broadcast to the node
+    // (reached === 'broadcast'), whether or not the wallet handed back a tx id —
+    // the newer DUST-model Lace resolves submitTransaction with no id. Anything
+    // thrown AFTER that is the SDK's post-broadcast confirmation watch: an indexer
+    // query that the current Preview indexer rejects with
+    // "IndexerQueryError / CombinedGraphQLErrors: Invalid value for argument
+    // 'offset' … Oneof input objects requires have exactly one field". That watch
+    // failing does NOT change whether the attestation lands, so we treat a
+    // broadcast tx as submitted and let the Verify tab read the authoritative
+    // on-chain verdict once the indexer catches up.
+    const broadcast = submittedTxId != null || reached === 'broadcast';
+    if (broadcast && !rejectedOnChain) {
+      console.warn('[ProofAudit] post-broadcast confirmation watch failed — treating as submitted:', err);
+      return { passed, txId: submittedTxId ?? 'submitted', contractHashHex: bytesToHex(contractHash) };
     }
     // Nothing was broadcast. Surface WHERE it died plus the real, de-wrapped
     // reason — the SDK hides it on err.cause with an empty message, so we walk
